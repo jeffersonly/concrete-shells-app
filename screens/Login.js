@@ -4,7 +4,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import * as firebase from 'firebase';
 import firebaseConfig from '../hidden/firebase-config';
 
-firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 
 import { Container, Content, Header, Form, Input, Item, Button, Label } from 'native-base';
 import { createStackNavigator, createAppContainer } from 'react-navigation';
