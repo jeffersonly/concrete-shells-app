@@ -1,10 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity, Alert } from 'react-native';
 import { Container, Content, Header, Form, Input, Item, Button, Label } from 'native-base';
 import { createStackNavigator, createAppContainer } from "react-navigation";
 import * as firebase from 'firebase';
 import firebaseConfig from '../hidden/firebase-config';
-
 
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
@@ -21,18 +20,22 @@ export class Login extends React.Component {
   }
 
   loginUser = (email, password) => {
+    const { navigate } = this.props.navigation;
+     
     try {
       firebase.auth().signInWithEmailAndPassword(email, password).then(function(user) {
         alert("Succcessfully Logged In User")
+        navigate('Home')
       })
     }
     catch(error) {
       alert("Failed to Log in")
-      console.log(error.toString())
+      //console.log(error.toString())
     }
   }
 
   render() {
+    
     return (
       <View style={styles.container}>
         <Image 
@@ -76,6 +79,14 @@ export class Login extends React.Component {
                 <Text 
                     style={styles.linkText}>
                     Don't have an account? Click here to Sign Up!
+                </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+                onPress={() => Alert.alert('Forgot Password',"Please contact Erika Sollars to reset your password.")}
+            >
+                <Text 
+                    style={styles.linkText}>
+                    Forgot Password?
                 </Text>
             </TouchableOpacity>
         </Form>
@@ -177,6 +188,52 @@ export class SignUp extends React.Component {
   }
 }
 
+/* Home Screen */
+export class Home extends React.Component {
+    
+  render() {
+    return (
+        <View style={styles.container}>
+            <Text style={styles.divider}></Text>
+           <Button style={styles.homeBtn}
+                full
+                rounded
+                primary
+                onPress={() => this.props.navigation.navigate('Login')}
+            >
+                <Text style={{color:'white'}}>Check In</Text>
+            </Button>
+            <Text style={styles.divider}></Text>
+            <Button style={styles.homeBtn}
+                full
+                rounded
+                primary
+                onPress={() => this.props.navigation.navigate('Login')}
+            >
+                <Text style={{color:'white'}}>Check Out</Text>
+            </Button>
+            <Text style={styles.divider}></Text>
+            <Button style={styles.homeBtn}
+                full
+                rounded
+                primary
+                onPress={() => this.props.navigation.navigate('Login')}
+            >
+                <Text style={{color:'white'}}>Order Items</Text>
+            </Button>
+            <Text style={styles.divider}></Text>
+            <Button style={styles.homeBtn}
+                full
+                rounded
+                primary
+                onPress={() => this.props.navigation.navigate('Login')}
+            >
+                <Text style={{color:'white'}}>SOMETHING</Text>
+            </Button>
+        </View>
+    );
+  }
+}
 
 /* APP NAVIGATION, SWITCH BETWEEN SCREENS */
 const AppNavigator = createStackNavigator(
@@ -186,7 +243,10 @@ const AppNavigator = createStackNavigator(
         },
         Login: {
             screen: Login
-        }
+        },
+        Home: {
+            screen: Home
+        },
     },
     {
         initialRouteName: 'Login',
@@ -238,6 +298,11 @@ const styles = StyleSheet.create({
     },
     btn: {
         color: '#fff', 
+        backgroundColor: '#ccc',
+        textAlign: 'center',
+    },
+    homeBtn: {
+        color: '#fff',
         backgroundColor: '#ccc',
         textAlign: 'center',
     },
