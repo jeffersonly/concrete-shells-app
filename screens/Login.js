@@ -1,9 +1,11 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity, Alert, TextInput, ScrollView, Keyboard } from 'react-native';
 import { Container, Content, Header, Form, Input, Item, Button, Label } from 'native-base';
 import { createStackNavigator, createAppContainer } from "react-navigation";
 import * as firebase from 'firebase';
 import firebaseConfig from '../hidden/firebase-config';
+import {  Notifications } from 'expo';
+import * as Permissions from 'expo-permissions';
 
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
@@ -22,16 +24,14 @@ export class Login extends React.Component {
   loginUser = (email, password) => {
     const { navigate } = this.props.navigation;
      
-    try {
-      firebase.auth().signInWithEmailAndPassword(email, password).then(function(user) {
+    
+    firebase.auth().signInWithEmailAndPassword(email, password).then(function(user) {
         alert("Succcessfully Logged In User")
         navigate('Home')
-      })
-    }
-    catch(error) {
-      alert("Failed to Log in")
-      //console.log(error.toString())
-    }
+    }, (error) => {
+        Alert.alert(error.message);
+    });
+    
   }
 
   render() {
@@ -51,6 +51,7 @@ export class Login extends React.Component {
                 autoCorrect={false}
                 autoCapitalize="none"
                 onChangeText={(email) => this.setState({ email })}
+                keyboardType="email-address"
                 />
             </Item>
             <Item floatingLabel>
@@ -82,7 +83,8 @@ export class Login extends React.Component {
                 </Text>
             </TouchableOpacity>
             <TouchableOpacity
-                onPress={() => Alert.alert('Forgot Password',"Please contact Erika Sollars to reset your password.")}
+                onPress={() => this.props.navigation.navigate('ForgotPassword')}
+                //onPress={() => Alert.alert('Forgot Password',"Please contact Erika Sollars to reset your password.")}
             >
                 <Text 
                     style={styles.linkText}>
@@ -105,26 +107,36 @@ export class SignUp extends React.Component {
           password: '',
           passwordCheck: '',
         })
-      }
-      signUpUser = (email, password, passwordCheck) => {
-        try {
-          if(this.state.password.length < 6)
-          {
-            alert("Please enter at least 6 characters")
+    }
+    
+    signUpUser = (email, password, passwordCheck) => {
+
+        if(this.state.password.length < 6)
+        {
+        alert("Please enter at least 6 characters")
+        return;
+        }
+        else if(this.state.password !== this.state.passwordCheck) {
+            alert("The passwords are not the same. Please re-enter them.")
             return;
-          }
-          else if(this.state.password !== this.state.passwordCheck) {
-              alert("The passwords are not the same. Please re-enter them.")
-              return;
-          }
-            firebase.auth().createUserWithEmailAndPassword(email, password)
-            alert("Thank you for signing up! Please proceed to sign in.")
         }
-        catch(error) {
-          alert("Something broke")
-          console.log(error.toString())
-        }
-      }
+        firebase.auth().createUserWithEmailAndPassword(email, password).then(() => { 
+            alert("Thank you for signing up! Please proceed to sign in.") 
+            this.props.navigation.navigate('Login');
+            //store user info into firebase database
+            firebase.database().ref('UsersList/').push({
+                email, password,
+            }).then((data)=>{
+                //success callback
+                console.log('data ' , data)
+            }).catch((error)=>{
+                //error callback
+                console.log('error ' , error)
+            })
+        }, (error) => {
+            Alert.alert(error.message);
+        });
+    }
 
   render() {
     return (
@@ -142,6 +154,7 @@ export class SignUp extends React.Component {
                     autoCorrect={false}
                     autoCapitalize="none"
                     onChangeText={(email) => this.setState({ email })}
+                    keyboardType="email-address"
                     />
                 </Item>
                 <Item floatingLabel>
@@ -155,7 +168,7 @@ export class SignUp extends React.Component {
                     />
                 </Item>
                 <Item floatingLabel>
-                    <Label style={styles.placeHolder}>Re-Enter Password</Label>
+                    <Label style={styles.placeHolder}>Confirm Password</Label>
                     <Input 
                     style={styles.inputText}
                     secureTextEntry={true}
@@ -188,9 +201,77 @@ export class SignUp extends React.Component {
   }
 }
 
+/* Forgot Password Screen */
+export class ForgotPassword extends React.Component {
+    constructor(props) {
+        super(props)
+        this.state = ({
+          email: '',
+        })
+      }
+      resetPassword = (email) => {
+        firebase.auth().sendPasswordResetEmail(email).then(() => {
+            Alert.alert("Password reset email has been sent.");
+            this.props.navigation.navigate('Login');
+        }, (error) => {
+            Alert.alert(error.message);
+        })
+      }
+
+  render() {
+    return (
+        <View style={styles.container}>
+            <Image 
+                style={styles.image}
+                source={require('../img/Logo.png')}
+            />
+            <Text style={styles.logoText}>Forgot your Password? Don't Worry!</Text>
+            <Form>
+                <Item floatingLabel>
+                    <Label style={styles.placeHolder}>Enter Email</Label>
+                    <Input 
+                    style={styles.inputText}
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    onChangeText={(email) => this.setState({ email })}
+                    keyboardType="email-address"
+                    />
+                </Item>
+                
+                <Text style={styles.divider}></Text>
+                <Button style={styles.btn}
+                    full
+                    rounded
+                    primary
+                    onPress={() => this.resetPassword (this.state.email)}
+                >
+                    <Text style={{color:'white'}}>Reset Password</Text>
+                </Button>
+                
+                <TouchableOpacity
+                    onPress={() => this.props.navigation.navigate('SignUp')}
+                >
+                    <Text 
+                        style={styles.linkText}>
+                        Don't Have an Account? Click here to Sign Up
+                    </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    onPress={() => this.props.navigation.navigate('Login')}
+                >
+                    <Text 
+                        style={styles.linkText}>
+                        Already have an account? Click to Sign In
+                    </Text>
+                </TouchableOpacity>
+            </Form>
+        </View>
+    );
+  }
+}
+
 /* Home Screen */
 export class Home extends React.Component {
-    
   render() {
     return (
         <View style={styles.container}>
@@ -201,7 +282,7 @@ export class Home extends React.Component {
                 primary
                 onPress={() => this.props.navigation.navigate('Login')}
             >
-                <Text style={{color:'white'}}>Check In</Text>
+                <Text style={{color:'white'}}>Schedule</Text>
             </Button>
             <Text style={styles.divider}></Text>
             <Button style={styles.homeBtn}
@@ -210,7 +291,7 @@ export class Home extends React.Component {
                 primary
                 onPress={() => this.props.navigation.navigate('Login')}
             >
-                <Text style={{color:'white'}}>Check Out</Text>
+                <Text style={{color:'white'}}>Order Materials</Text>
             </Button>
             <Text style={styles.divider}></Text>
             <Button style={styles.homeBtn}
@@ -219,7 +300,16 @@ export class Home extends React.Component {
                 primary
                 onPress={() => this.props.navigation.navigate('Login')}
             >
-                <Text style={{color:'white'}}>Order Items</Text>
+                <Text style={{color:'white'}}>History</Text>
+            </Button>
+            <Text style={styles.divider}></Text>
+            <Button style={styles.homeBtn}
+                full
+                rounded
+                primary
+                onPress={() => this.props.navigation.navigate('ReportProblem')}
+            >
+                <Text style={{color:'white'}}>Report a Problem</Text>
             </Button>
             <Text style={styles.divider}></Text>
             <Button style={styles.homeBtn}
@@ -228,11 +318,72 @@ export class Home extends React.Component {
                 primary
                 onPress={() => this.props.navigation.navigate('Login')}
             >
-                <Text style={{color:'white'}}>SOMETHING</Text>
+                <Text style={{color:'white'}}>Make a Request</Text>
             </Button>
         </View>
     );
   }
+}
+
+/* Report a Problem Screen */
+export class ReportProblem extends React.Component {
+
+    constructor(props) {
+        super(props)
+        this.state = ({
+          text: '',
+        })
+    }
+
+    report = (text) => {
+        if(text.length > 10) {
+            //store user info into firebase database
+            firebase.database().ref('Reports/').push({
+                text
+            }).then((data)=>{
+                //success callback
+                console.log('data ' , data)
+            }).catch((error)=>{
+                //error callback
+                console.log('error ' , error)
+            })
+            Alert.alert("Thank you for submitting a problem report!");
+            this.props.navigation.navigate('Home');
+        } else {
+            Alert.alert("Please enter a longer/more descriptive problem report.")
+        }
+    }
+
+    render() {
+        return (
+            <View style={styles.container}>
+                <Image 
+                    style={styles.image}
+                    source={require('../img/Logo.png')}
+                />
+                <Text style={styles.logoText}>Any issues? Report the problem!</Text>
+                <Text style={styles.logoText}>Reports are anonymous!</Text>
+                <ScrollView style={styles.reportTextAreaContainer} keyboardShouldPersistTaps="never">
+                    <TextInput 
+                        style={styles.reportTextArea}
+                        underlineColorAndroid="transparent"
+                        placeholder="Report Problem here ..."
+                        placeholderTextColor="grey"
+                        numberOfLines={10}
+                        multiline={true}
+                        onChangeText={(text) => this.setState({ text })}
+                    />
+                    <Button style={styles.btn}
+                        full
+                        primary
+                        onPress={() => this.report(this.state.text)}
+                    >
+                        <Text style={{color:'white'}}>Send</Text>
+                    </Button>
+                </ScrollView>
+            </View>
+        );
+    }
 }
 
 /* APP NAVIGATION, SWITCH BETWEEN SCREENS */
@@ -244,8 +395,14 @@ const AppNavigator = createStackNavigator(
         Login: {
             screen: Login
         },
+        ForgotPassword: {
+            screen: ForgotPassword
+        },
         Home: {
             screen: Home
+        },
+        ReportProblem: {
+            screen: ReportProblem
         },
     },
     {
@@ -282,7 +439,8 @@ const styles = StyleSheet.create({
         resizeMode: 'contain',
         alignContent: 'center',
         bottom: 0,
-        paddingTop: '35%',
+        paddingTop: '15%',
+        paddingBottom: '5%',
     },
     logoText: {
         fontSize: 18,
@@ -294,7 +452,7 @@ const styles = StyleSheet.create({
         fontSize: 16
     },
     divider: {
-      paddingTop: '25%',
+      paddingTop: '15%',
     },
     btn: {
         color: '#fff', 
@@ -316,7 +474,18 @@ const styles = StyleSheet.create({
         fontSize: 13,
         textAlign: 'center',
         marginTop: '5%',
-    }
+    },
+    reportTextAreaContainer: {
+        padding: 5,
+        borderRadius: 5,
+    },
+    reportTextArea: {
+        height: 300,
+        justifyContent: "flex-start",
+        backgroundColor: '#fff',
+        paddingLeft: 10,
+        fontSize: 14,
+    },
 });
 
 export default createAppContainer(AppNavigator);
